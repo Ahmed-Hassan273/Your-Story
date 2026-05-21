@@ -1,0 +1,48 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #eee;
+}
+
+#game-container {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr 260px;
+  grid-template-rows: 1fr 160px;
+  gap: 8px;
+  padding: 8px;
+}
+
+#log-panel,
+#interaction-panel,
+#location-panel,
+#player-panel {
+  border: 1px solid #333;
+  background: #181818;
+  padding: 12px;
+}
+
+#player-panel {
+  grid-column: 1 / 4;
+}
+
+#time-display {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.log-entry {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.log-time {
+  color: #aaa;
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Your Story</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="game-container">
+
+    <!-- LEFT LOG PANEL -->
+    <aside id="log-panel">
+      <!-- Logs / Notifications -->
+      <div id="game-log"></div>
+    </aside>
+
+    <!-- CENTER INTERACTION PANEL -->
+    <main id="interaction-panel">
+      <!-- Active interaction events -->
+       <div id="time-display"></div>
+    </main>
+
+    <!-- RIGHT LOCATION PANEL -->
+    <aside id="location-panel">
+      <!-- Location events -->
+    </aside>
+
+    <!-- BOTTOM PLAYER PANEL -->
+    <footer id="player-panel">
+      <!-- Player stats / stamina / buttons -->
+    </footer>
+
+  </div>
+
+  <script src="gameState.js"></script>
+  <script src="eventsData.js"></script>
+  <script src="systems/timeSystem.js"></script>
+  <script src="systems/logSystem.js"></script>
+  <script src="systems/eventSystem.js"></script>
+  <script src="systems/uiSystem.js"></script>
+  <script src="engine.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
