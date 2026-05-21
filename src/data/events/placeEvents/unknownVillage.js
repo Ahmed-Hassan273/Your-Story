@@ -1,6 +1,4 @@
-var placeEvents = {
-  ...(typeof placeEvents !== "undefined" ? placeEvents : {}),
-
+export const placeEvents = {
   unknown_village: {
     id: "unknown_village",
     type: "place",

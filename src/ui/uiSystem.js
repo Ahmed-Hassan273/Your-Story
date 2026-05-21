@@ -3,18 +3,36 @@ let lastInteractionSignature = "";
 let lastPlayerSignature = "";
 let lastGlobalSignature = "";
 
-function updateTimeUI() {
+export function bindUIEvents(onChoiceSelected) {
+  document.addEventListener("click", (event) => {
+    const choiceButton = event.target.closest("[data-event-id][data-choice-id]");
+    if (!choiceButton) return;
+
+    onChoiceSelected(choiceButton.dataset.eventId, choiceButton.dataset.choiceId);
+  });
+}
+
+export function update(state, viewModel) {
+  updateTimeUI(viewModel.timeText);
+  updateGlobalUI(state);
+  updatePlaceUI(viewModel.placeEvent, viewModel.globalEvents);
+  updateInteractionUI(viewModel.interactionEvents, viewModel.timeText);
+  updatePlayerUI(state);
+  updateLogUI(state);
+}
+
+function updateTimeUI(timeText) {
   const timeDisplay = document.getElementById("time-display");
   if (!timeDisplay) return;
 
-  timeDisplay.innerText = getTimeString();
+  timeDisplay.innerText = timeText;
 }
 
-function updateLogUI() {
+function updateLogUI(state) {
   const logContainer = document.getElementById("game-log");
   if (!logContainer) return;
 
-  const recentLogs = [...gameState.log].reverse().slice(0, 10);
+  const recentLogs = [...state.log].reverse().slice(0, 10);
 
   logContainer.innerHTML = recentLogs
     .map((entry) => {
@@ -29,12 +47,11 @@ function updateLogUI() {
     .join("");
 }
 
-function updatePlaceUI() {
+function updatePlaceUI(placeEvent, globalEvents) {
   const placePanel = document.getElementById("location-panel");
   if (!placePanel) return;
 
-  const placeEvent = getCurrentPlaceEvent();
-  const globalSignature = getActiveGlobalEvents().map((event) => event.id).join("|");
+  const globalSignature = globalEvents.map((event) => event.id).join("|");
   const signature = `${placeEvent ? placeEvent.id : "none"}:${globalSignature}`;
   if (signature === lastPlaceSignature) return;
 
@@ -45,7 +62,7 @@ function updatePlaceUI() {
     return;
   }
 
-  const globalEventsHtml = getActiveGlobalEvents()
+  const globalEventsHtml = globalEvents
     .map((event) => `<p><strong>${event.title}</strong>: ${event.description}</p>`)
     .join("");
 
@@ -56,11 +73,10 @@ function updatePlaceUI() {
   `;
 }
 
-function updateInteractionUI() {
+function updateInteractionUI(interactionEvents, timeText) {
   const interactionPanel = document.getElementById("interaction-panel");
   if (!interactionPanel) return;
 
-  const interactionEvents = getActiveInteractionEvents();
   const signature = interactionEvents.map((eventInstance) => eventInstance.id).join("|");
   if (signature === lastInteractionSignature) return;
 
@@ -87,16 +103,16 @@ function updateInteractionUI() {
     .join("");
 
   interactionPanel.innerHTML = `
-    <div id="time-display">${getTimeString()}</div>
+    <div id="time-display">${timeText}</div>
     ${eventHtml}
   `;
 }
 
-function updatePlayerUI() {
+function updatePlayerUI(state) {
   const playerPanel = document.getElementById("player-panel");
   if (!playerPanel) return;
 
-  const resources = gameState.player.resources;
+  const resources = state.player.resources;
   const signature = JSON.stringify(resources);
   if (signature === lastPlayerSignature) return;
 
@@ -111,34 +127,10 @@ function updatePlayerUI() {
   `;
 }
 
-function updateGlobalUI() {
-  const signature = gameState.activeEvents.globalEvents.join("|");
+function updateGlobalUI(state) {
+  const signature = state.activeEvents.globalEvents.join("|");
   if (signature === lastGlobalSignature) return;
 
   lastGlobalSignature = signature;
-  updatePlaceUI();
+  lastPlaceSignature = "";
 }
-
-function updateAllUI() {
-  updateTimeUI();
-  updateGlobalUI();
-  updatePlaceUI();
-  updateInteractionUI();
-  updatePlayerUI();
-  updateLogUI();
-}
-
-document.addEventListener("click", (event) => {
-  const choiceButton = event.target.closest("[data-event-id][data-choice-id]");
-  if (!choiceButton) return;
-
-  processEventChoice(choiceButton.dataset.eventId, choiceButton.dataset.choiceId);
-  updateAllUI();
-});
-
-function uiLoop() {
-  updateAllUI();
-  requestAnimationFrame(uiLoop);
-}
-
-requestAnimationFrame(uiLoop);

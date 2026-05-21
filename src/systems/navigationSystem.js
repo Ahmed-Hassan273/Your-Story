@@ -1,18 +1,20 @@
-function getCurrentPlaceId() {
-  return gameState.world.currentPlace;
+export function update() {}
+
+export function getCurrentPlaceId(state) {
+  return state.world.currentPlace;
 }
 
-function travelToPlace(placeId) {
+export function travelToPlace(state, eventDefinitions, placeId, addLog) {
   if (!eventDefinitions.placeEvents[placeId]) return false;
 
-  gameState.world.currentPlace = placeId;
-  gameState.activeEvents.placeEvent = null;
-  gameState.activeEvents.interactionEvents = [];
+  state.world.currentPlace = placeId;
+  state.activeEvents.placeEvent = null;
+  state.activeEvents.interactionEvents = [];
 
-  if (!gameState.world.discoveredPlaces.includes(placeId)) {
-    gameState.world.discoveredPlaces.push(placeId);
+  if (!state.world.discoveredPlaces.includes(placeId)) {
+    state.world.discoveredPlaces.push(placeId);
   }
 
-  addLog(`You travel to ${eventDefinitions.placeEvents[placeId].title}.`, "travel");
+  addLog(state, `You travel to ${eventDefinitions.placeEvents[placeId].title}.`, "travel");
   return true;
 }

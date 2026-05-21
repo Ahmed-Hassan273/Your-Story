@@ -1,4 +1,4 @@
-var initialPlayerState = {
+export const initialPlayerState = {
   name: "Unknown",
   age: 18,
 

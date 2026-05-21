@@ -1,9 +1,9 @@
-function updateDerivedStats() {
-  const body = gameState.player.attributes.body;
-  const heart = gameState.player.attributes.heart;
+export function update(state) {
+  const body = state.player.attributes.body;
+  const heart = state.player.attributes.heart;
 
-  gameState.player.derivedStats.physicalResistance = Math.floor(
+  state.player.derivedStats.physicalResistance = Math.floor(
     (body.strength + body.endurance) / 2
   );
-  gameState.player.derivedStats.magicalResistance = heart.willpower;
+  state.player.derivedStats.magicalResistance = heart.willpower;
 }

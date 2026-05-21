@@ -1,1 +1,1 @@
-var miscItems = {};
+export const miscItems = {};

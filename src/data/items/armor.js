@@ -1,1 +1,1 @@
-var armorItems = {};
+export const armorItems = {};

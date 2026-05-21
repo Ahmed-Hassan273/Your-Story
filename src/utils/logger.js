@@ -1,17 +1,17 @@
-function addLog(message, type = "system") {
+export function addLog(state, message, type = "system") {
   const entry = {
     message,
     type,
     time: {
-      day: gameState.time.day,
-      hour: gameState.time.hour,
-      minute: Math.floor(gameState.time.minute),
+      day: state.time.day,
+      hour: state.time.hour,
+      minute: Math.floor(state.time.minute),
     },
   };
 
-  gameState.log.push(entry);
+  state.log.push(entry);
 
-  if (gameState.log.length > 100) {
-    gameState.log.shift();
+  if (state.log.length > 100) {
+    state.log.shift();
   }
 }

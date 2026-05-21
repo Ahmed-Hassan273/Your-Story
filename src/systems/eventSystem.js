@@ -1,30 +1,33 @@
-function initializePlaceEvent() {
-  const placeId = gameState.world.currentPlace;
-  const placeEvent = eventDefinitions.placeEvents[placeId];
+import { clamp } from "../utils/math.js";
 
-  if (!placeEvent) {
-    gameState.activeEvents.placeEvent = null;
-    return;
-  }
-
-  gameState.activeEvents.placeEvent = placeEvent.id;
+export function initialize(state, eventDefinitions, addLog) {
+  initializePlaceEvent(state, eventDefinitions);
+  addLog(state, "Your journey begins in an unknown village.", "event");
+  addLog(state, "You are eighteen years old. Your life is still unwritten.", "system");
 }
 
-function getCurrentPlaceEvent() {
-  const eventId = gameState.activeEvents.placeEvent;
+export function update(state, eventDefinitions, deltaMinutes, addLog) {
+  initializePlaceEvent(state, eventDefinitions);
+  updateGlobalEvents(state, eventDefinitions);
+  updateInteractionEvents(state, eventDefinitions, deltaMinutes, addLog);
+  maybeStartPlaceInteraction(state, eventDefinitions, addLog);
+}
+
+export function getCurrentPlaceEvent(state, eventDefinitions) {
+  const eventId = state.activeEvents.placeEvent;
   if (!eventId) return null;
 
   return eventDefinitions.placeEvents[eventId] || null;
 }
 
-function getActiveGlobalEvents() {
-  return gameState.activeEvents.globalEvents
+export function getActiveGlobalEvents(state, eventDefinitions) {
+  return state.activeEvents.globalEvents
     .map((eventId) => eventDefinitions.globalEvents[eventId])
     .filter(Boolean);
 }
 
-function getActiveInteractionEvents() {
-  return gameState.activeEvents.interactionEvents
+export function getActiveInteractionEvents(state, eventDefinitions) {
+  return state.activeEvents.interactionEvents
     .map((eventInstance) => ({
       ...eventInstance,
       definition: eventDefinitions.interactionEvents[eventInstance.id],
@@ -32,7 +35,31 @@ function getActiveInteractionEvents() {
     .filter((eventInstance) => eventInstance.definition);
 }
 
-function createInteractionEvent(eventId, source = "system") {
+export function processEventChoice(state, eventDefinitions, eventId, choiceId, addLog) {
+  const definition = eventDefinitions.interactionEvents[eventId];
+  if (!definition) return;
+
+  const choice = definition.choices.find((item) => item.id === choiceId);
+  if (!choice) return;
+
+  applyEventEffects(state, choice.effects);
+  addLog(state, choice.log, "choice");
+  finishInteractionEvent(state, eventId, `choice:${choiceId}`);
+}
+
+function initializePlaceEvent(state, eventDefinitions) {
+  const placeId = state.world.currentPlace;
+  const placeEvent = eventDefinitions.placeEvents[placeId];
+
+  if (!placeEvent) {
+    state.activeEvents.placeEvent = null;
+    return;
+  }
+
+  state.activeEvents.placeEvent = placeEvent.id;
+}
+
+function createInteractionEvent(state, eventDefinitions, eventId, source = "system") {
   const definition = eventDefinitions.interactionEvents[eventId];
   if (!definition) return null;
 
@@ -40,81 +67,62 @@ function createInteractionEvent(eventId, source = "system") {
     id: definition.id,
     source,
     startedAt: {
-      day: gameState.time.day,
-      hour: gameState.time.hour,
-      minute: Math.floor(gameState.time.minute),
+      day: state.time.day,
+      hour: state.time.hour,
+      minute: Math.floor(state.time.minute),
     },
     remainingMinutes: definition.durationMinutes || 0,
   };
 }
 
-function startInteractionEvent(eventId, source = "system") {
-  const alreadyActive = gameState.activeEvents.interactionEvents.some(
+function startInteractionEvent(state, eventDefinitions, eventId, source, addLog) {
+  const alreadyActive = state.activeEvents.interactionEvents.some(
     (eventInstance) => eventInstance.id === eventId
   );
   if (alreadyActive) return;
 
-  const eventInstance = createInteractionEvent(eventId, source);
+  const eventInstance = createInteractionEvent(state, eventDefinitions, eventId, source);
   if (!eventInstance) return;
 
-  gameState.activeEvents.interactionEvents.push(eventInstance);
-  addLog(`Event started: ${eventDefinitions.interactionEvents[eventId].title}`, "event");
+  state.activeEvents.interactionEvents.push(eventInstance);
+  addLog(state, `Event started: ${eventDefinitions.interactionEvents[eventId].title}`, "event");
 }
 
-function finishInteractionEvent(eventId, reason = "finished") {
-  const index = gameState.activeEvents.interactionEvents.findIndex(
+function finishInteractionEvent(state, eventId, reason = "finished") {
+  const index = state.activeEvents.interactionEvents.findIndex(
     (eventInstance) => eventInstance.id === eventId
   );
   if (index === -1) return;
 
-  const [eventInstance] = gameState.activeEvents.interactionEvents.splice(index, 1);
-  gameState.eventHistory.push({
+  const [eventInstance] = state.activeEvents.interactionEvents.splice(index, 1);
+  state.eventHistory.push({
     id: eventInstance.id,
     type: "interaction",
     reason,
     endedAt: {
-      day: gameState.time.day,
-      hour: gameState.time.hour,
-      minute: Math.floor(gameState.time.minute),
+      day: state.time.day,
+      hour: state.time.hour,
+      minute: Math.floor(state.time.minute),
     },
   });
 }
 
-function applyEventEffects(effects = {}) {
+function applyEventEffects(state, effects = {}) {
   for (const [resourceName, value] of Object.entries(effects)) {
-    if (!(resourceName in gameState.player.resources)) continue;
+    if (!(resourceName in state.player.resources)) continue;
 
-    gameState.player.resources[resourceName] = clamp(
-      gameState.player.resources[resourceName] + value,
+    state.player.resources[resourceName] = clamp(
+      state.player.resources[resourceName] + value,
       0,
       100
     );
   }
 }
 
-function processEventChoice(eventId, choiceId) {
-  const definition = eventDefinitions.interactionEvents[eventId];
-  if (!definition) return;
+function updateGlobalEvents(state, eventDefinitions) {
+  const currentMinutes = getTotalGameMinutes(state.time);
 
-  const choice = definition.choices.find((item) => item.id === choiceId);
-  if (!choice) return;
-
-  applyEventEffects(choice.effects);
-  addLog(choice.log, "choice");
-  finishInteractionEvent(eventId, `choice:${choiceId}`);
-}
-
-function updateEventSystem(deltaMinutes) {
-  initializePlaceEvent();
-  updateGlobalEvents();
-  updateInteractionEvents(deltaMinutes);
-  maybeStartPlaceInteraction();
-}
-
-function updateGlobalEvents() {
-  const currentMinutes = getTotalGameMinutes();
-
-  gameState.activeEvents.globalEvents = Object.values(eventDefinitions.globalEvents)
+  state.activeEvents.globalEvents = Object.values(eventDefinitions.globalEvents)
     .filter((event) => {
       const startsAt = getTotalGameMinutes(event.startsAt);
       const endsAt = getTotalGameMinutes(event.endsAt);
@@ -123,29 +131,33 @@ function updateGlobalEvents() {
     .map((event) => event.id);
 }
 
-function updateInteractionEvents(deltaMinutes) {
-  for (const eventInstance of gameState.activeEvents.interactionEvents) {
+function updateInteractionEvents(state, eventDefinitions, deltaMinutes, addLog) {
+  for (const eventInstance of state.activeEvents.interactionEvents) {
     eventInstance.remainingMinutes -= deltaMinutes;
   }
 
-  const expiredEvents = gameState.activeEvents.interactionEvents.filter(
+  const expiredEvents = state.activeEvents.interactionEvents.filter(
     (eventInstance) => eventInstance.remainingMinutes <= 0
   );
 
   for (const eventInstance of expiredEvents) {
-    addLog(`Event ended: ${eventDefinitions.interactionEvents[eventInstance.id].title}`, "event");
-    finishInteractionEvent(eventInstance.id, "expired");
+    addLog(state, `Event ended: ${eventDefinitions.interactionEvents[eventInstance.id].title}`, "event");
+    finishInteractionEvent(state, eventInstance.id, "expired");
   }
 }
 
-function maybeStartPlaceInteraction() {
-  const placeEvent = getCurrentPlaceEvent();
+function maybeStartPlaceInteraction(state, eventDefinitions, addLog) {
+  const placeEvent = getCurrentPlaceEvent(state, eventDefinitions);
   if (!placeEvent) return;
 
-  const hasInteraction = gameState.activeEvents.interactionEvents.length > 0;
-  const shouldStart = gameState.eventHistory.length === 0 && !hasInteraction;
+  const hasInteraction = state.activeEvents.interactionEvents.length > 0;
+  const shouldStart = state.eventHistory.length === 0 && !hasInteraction;
   if (!shouldStart) return;
 
   const firstInteraction = placeEvent.possibleInteractions[0];
-  startInteractionEvent(firstInteraction, "place");
+  startInteractionEvent(state, eventDefinitions, firstInteraction, "place", addLog);
+}
+
+function getTotalGameMinutes(time) {
+  return (time.day - 1) * 24 * 60 + time.hour * 60 + Math.floor(time.minute);
 }

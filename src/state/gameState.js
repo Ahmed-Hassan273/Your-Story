@@ -1,4 +1,8 @@
-var gameState = {
+import { initialPlayerState } from "./playerState.js";
+import { initialTimeState } from "./timeState.js";
+import { initialWorldState } from "./worldState.js";
+
+export const gameState = {
   _initialized: false,
 
   player: initialPlayerState,
@@ -15,5 +19,3 @@ var gameState = {
   eventHistory: [],
   log: [],
 };
-
-globalThis.gameState = gameState;

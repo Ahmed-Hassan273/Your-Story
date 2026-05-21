@@ -1,1 +1,1 @@
-var weaponItems = {};
+export const weaponItems = {};

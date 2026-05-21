@@ -1,1 +1,1 @@
-var consumableItems = {};
+export const consumableItems = {};

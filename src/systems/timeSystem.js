@@ -1,24 +1,24 @@
-function advanceTime(minutes = 1) {
-  gameState.time.minute += minutes;
+export function update(state, deltaMinutes) {
+  advanceTime(state, deltaMinutes);
+}
 
-  while (gameState.time.minute >= 60) {
-    gameState.time.minute -= 60;
-    gameState.time.hour += 1;
+export function advanceTime(state, minutes = 1) {
+  state.time.minute += minutes;
+
+  while (state.time.minute >= 60) {
+    state.time.minute -= 60;
+    state.time.hour += 1;
   }
 
-  while (gameState.time.hour >= 24) {
-    gameState.time.hour -= 24;
-    gameState.time.day += 1;
+  while (state.time.hour >= 24) {
+    state.time.hour -= 24;
+    state.time.day += 1;
   }
 }
 
-function getTimeString() {
-  const hour = String(gameState.time.hour).padStart(2, "0");
-  const minute = String(Math.floor(gameState.time.minute)).padStart(2, "0");
+export function getTimeString(state) {
+  const hour = String(state.time.hour).padStart(2, "0");
+  const minute = String(Math.floor(state.time.minute)).padStart(2, "0");
 
-  return `Day ${gameState.time.day} - ${hour}:${minute}`;
-}
-
-function getTotalGameMinutes(time = gameState.time) {
-  return (time.day - 1) * 24 * 60 + time.hour * 60 + Math.floor(time.minute);
+  return `Day ${state.time.day} - ${hour}:${minute}`;
 }

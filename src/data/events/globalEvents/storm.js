@@ -1,6 +1,4 @@
-var globalEvents = {
-  ...(typeof globalEvents !== "undefined" ? globalEvents : {}),
-
+export const globalEvents = {
   early_storm: {
     id: "early_storm",
     type: "global",

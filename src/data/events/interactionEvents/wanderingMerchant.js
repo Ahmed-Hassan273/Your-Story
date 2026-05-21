@@ -1,6 +1,4 @@
-var interactionEvents = {
-  ...(typeof interactionEvents !== "undefined" ? interactionEvents : {}),
-
+export const wanderingMerchantInteractionEvents = {
   wandering_merchant: {
     id: "wandering_merchant",
     type: "interaction",
