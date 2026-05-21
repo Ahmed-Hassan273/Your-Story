@@ -1,6 +1,7 @@
-let lastLocationSignature = "";
+let lastPlaceSignature = "";
 let lastInteractionSignature = "";
 let lastPlayerSignature = "";
+let lastGlobalSignature = "";
 
 function updateTimeUI() {
   const timeDisplay = document.getElementById("time-display");
@@ -9,24 +10,49 @@ function updateTimeUI() {
   timeDisplay.innerText = getTimeString();
 }
 
-function updateLocationUI() {
-  const locationPanel = document.getElementById("location-panel");
-  if (!locationPanel) return;
+function updateLogUI() {
+  const logContainer = document.getElementById("game-log");
+  if (!logContainer) return;
 
-  const locationEvent = getCurrentLocationEvent();
-  const signature = locationEvent ? locationEvent.id : "none";
-  if (signature === lastLocationSignature) return;
+  const recentLogs = [...gameState.log].reverse().slice(0, 10);
 
-  lastLocationSignature = signature;
+  logContainer.innerHTML = recentLogs
+    .map((entry) => {
+      const hour = String(entry.time.hour).padStart(2, "0");
+      const minute = String(entry.time.minute).padStart(2, "0");
+      const timeStr = `Day ${entry.time.day} - ${hour}:${minute}`;
 
-  if (!locationEvent) {
-    locationPanel.innerHTML = "";
+      return `<div class="log-entry ${entry.type}">
+        <span class="log-time">[${timeStr}]</span> ${entry.message}
+      </div>`;
+    })
+    .join("");
+}
+
+function updatePlaceUI() {
+  const placePanel = document.getElementById("location-panel");
+  if (!placePanel) return;
+
+  const placeEvent = getCurrentPlaceEvent();
+  const globalSignature = getActiveGlobalEvents().map((event) => event.id).join("|");
+  const signature = `${placeEvent ? placeEvent.id : "none"}:${globalSignature}`;
+  if (signature === lastPlaceSignature) return;
+
+  lastPlaceSignature = signature;
+
+  if (!placeEvent) {
+    placePanel.innerHTML = "";
     return;
   }
 
-  locationPanel.innerHTML = `
-    <h2>${locationEvent.title}</h2>
-    <p>${locationEvent.description}</p>
+  const globalEventsHtml = getActiveGlobalEvents()
+    .map((event) => `<p><strong>${event.title}</strong>: ${event.description}</p>`)
+    .join("");
+
+  placePanel.innerHTML = `
+    <h2>${placeEvent.title}</h2>
+    <p>${placeEvent.description}</p>
+    ${globalEventsHtml}
   `;
 }
 
@@ -35,9 +61,7 @@ function updateInteractionUI() {
   if (!interactionPanel) return;
 
   const interactionEvents = getActiveInteractionEvents();
-  const signature = interactionEvents
-    .map((eventInstance) => eventInstance.id)
-    .join("|");
+  const signature = interactionEvents.map((eventInstance) => eventInstance.id).join("|");
   if (signature === lastInteractionSignature) return;
 
   lastInteractionSignature = signature;
@@ -87,9 +111,18 @@ function updatePlayerUI() {
   `;
 }
 
+function updateGlobalUI() {
+  const signature = gameState.activeEvents.globalEvents.join("|");
+  if (signature === lastGlobalSignature) return;
+
+  lastGlobalSignature = signature;
+  updatePlaceUI();
+}
+
 function updateAllUI() {
   updateTimeUI();
-  updateLocationUI();
+  updateGlobalUI();
+  updatePlaceUI();
   updateInteractionUI();
   updatePlayerUI();
   updateLogUI();

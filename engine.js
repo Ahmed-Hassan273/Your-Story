@@ -20,13 +20,14 @@ function updateGameLogic(deltaMs) {
 
   gametick();
   advanceTime(gameMinutes);
+  updateDerivedStats();
   updateEventSystem(gameMinutes);
 }
 
 function gametick() {
   if (gameState._initialized) return;
 
-  initializeLocationEvent();
+  initializePlaceEvent();
   addLog("Your journey begins in an unknown village.", "event");
   addLog("You are eighteen years old. Your life is still unwritten.", "system");
   gameState._initialized = true;

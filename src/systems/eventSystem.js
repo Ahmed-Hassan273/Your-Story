@@ -1,20 +1,26 @@
-function initializeLocationEvent() {
-  const locationId = gameState.world.location;
-  const locationEvent = eventDefinitions.locationEvents[locationId];
+function initializePlaceEvent() {
+  const placeId = gameState.world.currentPlace;
+  const placeEvent = eventDefinitions.placeEvents[placeId];
 
-  if (!locationEvent) {
-    gameState.activeEvents.locationEvent = null;
+  if (!placeEvent) {
+    gameState.activeEvents.placeEvent = null;
     return;
   }
 
-  gameState.activeEvents.locationEvent = locationEvent.id;
+  gameState.activeEvents.placeEvent = placeEvent.id;
 }
 
-function getCurrentLocationEvent() {
-  const eventId = gameState.activeEvents.locationEvent;
+function getCurrentPlaceEvent() {
+  const eventId = gameState.activeEvents.placeEvent;
   if (!eventId) return null;
 
-  return eventDefinitions.locationEvents[eventId] || null;
+  return eventDefinitions.placeEvents[eventId] || null;
+}
+
+function getActiveGlobalEvents() {
+  return gameState.activeEvents.globalEvents
+    .map((eventId) => eventDefinitions.globalEvents[eventId])
+    .filter(Boolean);
 }
 
 function getActiveInteractionEvents() {
@@ -34,9 +40,9 @@ function createInteractionEvent(eventId, source = "system") {
     id: definition.id,
     source,
     startedAt: {
-      day: gameState.world.day,
-      hour: gameState.world.hour,
-      minute: Math.floor(gameState.world.minute),
+      day: gameState.time.day,
+      hour: gameState.time.hour,
+      minute: Math.floor(gameState.time.minute),
     },
     remainingMinutes: definition.durationMinutes || 0,
   };
@@ -64,11 +70,12 @@ function finishInteractionEvent(eventId, reason = "finished") {
   const [eventInstance] = gameState.activeEvents.interactionEvents.splice(index, 1);
   gameState.eventHistory.push({
     id: eventInstance.id,
+    type: "interaction",
     reason,
     endedAt: {
-      day: gameState.world.day,
-      hour: gameState.world.hour,
-      minute: Math.floor(gameState.world.minute),
+      day: gameState.time.day,
+      hour: gameState.time.hour,
+      minute: Math.floor(gameState.time.minute),
     },
   });
 }
@@ -77,7 +84,11 @@ function applyEventEffects(effects = {}) {
   for (const [resourceName, value] of Object.entries(effects)) {
     if (!(resourceName in gameState.player.resources)) continue;
 
-    gameState.player.resources[resourceName] += value;
+    gameState.player.resources[resourceName] = clamp(
+      gameState.player.resources[resourceName] + value,
+      0,
+      100
+    );
   }
 }
 
@@ -94,8 +105,25 @@ function processEventChoice(eventId, choiceId) {
 }
 
 function updateEventSystem(deltaMinutes) {
-  initializeLocationEvent();
+  initializePlaceEvent();
+  updateGlobalEvents();
+  updateInteractionEvents(deltaMinutes);
+  maybeStartPlaceInteraction();
+}
 
+function updateGlobalEvents() {
+  const currentMinutes = getTotalGameMinutes();
+
+  gameState.activeEvents.globalEvents = Object.values(eventDefinitions.globalEvents)
+    .filter((event) => {
+      const startsAt = getTotalGameMinutes(event.startsAt);
+      const endsAt = getTotalGameMinutes(event.endsAt);
+      return currentMinutes >= startsAt && currentMinutes < endsAt;
+    })
+    .map((event) => event.id);
+}
+
+function updateInteractionEvents(deltaMinutes) {
   for (const eventInstance of gameState.activeEvents.interactionEvents) {
     eventInstance.remainingMinutes -= deltaMinutes;
   }
@@ -108,18 +136,16 @@ function updateEventSystem(deltaMinutes) {
     addLog(`Event ended: ${eventDefinitions.interactionEvents[eventInstance.id].title}`, "event");
     finishInteractionEvent(eventInstance.id, "expired");
   }
-
-  maybeStartLocationInteraction();
 }
 
-function maybeStartLocationInteraction() {
-  const locationEvent = getCurrentLocationEvent();
-  if (!locationEvent) return;
+function maybeStartPlaceInteraction() {
+  const placeEvent = getCurrentPlaceEvent();
+  if (!placeEvent) return;
 
   const hasInteraction = gameState.activeEvents.interactionEvents.length > 0;
   const shouldStart = gameState.eventHistory.length === 0 && !hasInteraction;
   if (!shouldStart) return;
 
-  const firstInteraction = locationEvent.possibleInteractions[0];
-  startInteractionEvent(firstInteraction, "location");
+  const firstInteraction = placeEvent.possibleInteractions[0];
+  startInteractionEvent(firstInteraction, "place");
 }
