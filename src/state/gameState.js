@@ -17,5 +17,12 @@ export const gameState = {
 
   eventQueue: [],
   eventHistory: [],
+  runHistory: [],
+  lifecycle: {
+    isAlive: true,
+    causeOfDeath: null,
+    diedAt: null,
+    lifeSummary: null,
+  },
   log: [],
 };

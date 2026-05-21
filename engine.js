@@ -6,6 +6,8 @@ import * as eventSystem from "./src/systems/eventSystem.js";
 import * as statsSystem from "./src/systems/statsSystem.js";
 import * as navigationSystem from "./src/systems/navigationSystem.js";
 import * as combatSystem from "./src/systems/combatSystem.js";
+import * as lifecycleSystem from "./src/systems/lifecycleSystem.js";
+import * as lifeStorySystem from "./src/systems/lifeStorySystem.js";
 import * as saveSystem from "./src/systems/saveSystem.js";
 import * as uiSystem from "./src/ui/uiSystem.js";
 
@@ -22,16 +24,22 @@ export const engine = {
 function start() {
   if (isRunning) return;
 
-  isRunning = true;
-  lastTime = performance.now();
-
+  loadGame();
   initializeGame();
   bindInput();
   render();
+
+  if (!gameState.lifecycle.isAlive) return;
+
+  isRunning = true;
+  lastTime = performance.now();
+
   requestAnimationFrame(gameLoop);
 }
 
 function gameLoop(currentTime) {
+  if (!isRunning) return;
+
   const deltaTime = currentTime - lastTime;
   lastTime = currentTime;
   timer += deltaTime;
@@ -42,17 +50,21 @@ function gameLoop(currentTime) {
   }
 
   render();
+
+  if (!isRunning) return;
+
   requestAnimationFrame(gameLoop);
 }
 
 function updateGameLogic(deltaMs) {
-  const gameMinutes = deltaMs / 1000;
+  const baseGameMinutes = deltaMs / 1000;
 
-  timeSystem.update(gameState, gameMinutes);
-  eventSystem.update(gameState, eventDefinitions, gameMinutes, addLog);
+  const scaledGameMinutes = timeSystem.update(gameState, baseGameMinutes);
+  eventSystem.update(gameState, eventDefinitions, scaledGameMinutes, addLog);
   statsSystem.update(gameState);
   navigationSystem.update(gameState, eventDefinitions, addLog);
   combatSystem.update(gameState, eventDefinitions, addLog);
+  handleLifecycle();
   saveSystem.update(gameState, deltaMs);
 }
 
@@ -64,11 +76,30 @@ function initializeGame() {
   gameState._initialized = true;
 }
 
+function loadGame() {
+  const loadedState = saveSystem.load();
+  saveSystem.applyLoadedState(gameState, loadedState);
+}
+
 function bindInput() {
   uiSystem.bindUIEvents((eventId, choiceId) => {
+    if (!gameState.lifecycle.isAlive) return;
+
     eventSystem.processEventChoice(gameState, eventDefinitions, eventId, choiceId, addLog);
+    handleLifecycle();
     render();
   });
+}
+
+function handleLifecycle() {
+  const result = lifecycleSystem.update(gameState);
+  if (!result.died) return;
+
+  gameState.lifecycle.lifeSummary = lifeStorySystem.generateLifeSummary(gameState);
+  gameState.runHistory.push(gameState.lifecycle.lifeSummary);
+  saveSystem.saveRunHistory(gameState.lifecycle.lifeSummary);
+  saveSystem.save(gameState);
+  isRunning = false;
 }
 
 function render() {

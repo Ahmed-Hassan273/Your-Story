@@ -7,6 +7,10 @@ export const wanderingMerchantInteractionEvents = {
     description:
       "A tired merchant leads a small mule through the village square. His eyes measure you before his words do.",
     tags: ["npc", "trade"],
+    triggers: ["place"],
+    conditions: {
+      place: "unknown_village",
+    },
     durationMinutes: 10,
     choices: [
       {
@@ -14,7 +18,9 @@ export const wanderingMerchantInteractionEvents = {
         label: "Talk",
         log: "You speak with the wandering merchant and hear rumors about the northern road.",
         effects: {
-          focus: -1,
+          resources: {
+            focus: -1,
+          },
         },
       },
       {

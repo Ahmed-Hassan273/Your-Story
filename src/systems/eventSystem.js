@@ -62,6 +62,7 @@ function initializePlaceEvent(state, eventDefinitions) {
 function createInteractionEvent(state, eventDefinitions, eventId, source = "system") {
   const definition = eventDefinitions.interactionEvents[eventId];
   if (!definition) return null;
+  if (!eventMeetsConditions(state, definition)) return null;
 
   return {
     id: definition.id,
@@ -108,7 +109,9 @@ function finishInteractionEvent(state, eventId, reason = "finished") {
 }
 
 function applyEventEffects(state, effects = {}) {
-  for (const [resourceName, value] of Object.entries(effects)) {
+  const resourceEffects = effects.resources || effects;
+
+  for (const [resourceName, value] of Object.entries(resourceEffects)) {
     if (!(resourceName in state.player.resources)) continue;
 
     state.player.resources[resourceName] = clamp(
@@ -132,6 +135,8 @@ function updateGlobalEvents(state, eventDefinitions) {
 }
 
 function updateInteractionEvents(state, eventDefinitions, deltaMinutes, addLog) {
+  if (deltaMinutes <= 0) return;
+
   for (const eventInstance of state.activeEvents.interactionEvents) {
     eventInstance.remainingMinutes -= deltaMinutes;
   }
@@ -154,10 +159,35 @@ function maybeStartPlaceInteraction(state, eventDefinitions, addLog) {
   const shouldStart = state.eventHistory.length === 0 && !hasInteraction;
   if (!shouldStart) return;
 
-  const firstInteraction = placeEvent.possibleInteractions[0];
+  const firstInteraction = placeEvent.possibleInteractions.find((eventId) =>
+    eventMeetsConditions(state, eventDefinitions.interactionEvents[eventId])
+  );
+  if (!firstInteraction) return;
+
   startInteractionEvent(state, eventDefinitions, firstInteraction, "place", addLog);
 }
 
 function getTotalGameMinutes(time) {
   return (time.day - 1) * 24 * 60 + time.hour * 60 + Math.floor(time.minute);
+}
+
+function eventMeetsConditions(state, eventDefinition) {
+  if (!eventDefinition) return false;
+  if (!eventDefinition.conditions) return true;
+
+  const conditions = eventDefinition.conditions;
+
+  if (conditions.place && state.world.currentPlace !== conditions.place) {
+    return false;
+  }
+
+  if (conditions.minAge && state.player.age < conditions.minAge) {
+    return false;
+  }
+
+  if (conditions.maxAge && state.player.age > conditions.maxAge) {
+    return false;
+  }
+
+  return true;
 }

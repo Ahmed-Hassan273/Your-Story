@@ -18,6 +18,7 @@ export function update(state, viewModel) {
   updatePlaceUI(viewModel.placeEvent, viewModel.globalEvents);
   updateInteractionUI(viewModel.interactionEvents, viewModel.timeText);
   updatePlayerUI(state);
+  updateLifeSummaryUI(state);
   updateLogUI(state);
 }
 
@@ -133,4 +134,19 @@ function updateGlobalUI(state) {
 
   lastGlobalSignature = signature;
   lastPlaceSignature = "";
+}
+
+function updateLifeSummaryUI(state) {
+  if (state.lifecycle.isAlive || !state.lifecycle.lifeSummary) return;
+
+  const interactionPanel = document.getElementById("interaction-panel");
+  if (!interactionPanel) return;
+
+  interactionPanel.innerHTML = `
+    <div id="time-display">${interactionPanel.querySelector("#time-display")?.innerText || ""}</div>
+    <section class="life-summary">
+      <h2>${state.lifecycle.lifeSummary.title}</h2>
+      <p>${state.lifecycle.lifeSummary.narrative}</p>
+    </section>
+  `;
 }
